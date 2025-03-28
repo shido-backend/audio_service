@@ -23,7 +23,7 @@ class UserService:
     
     async def get_all_users(self, skip: int = 0, limit: int = 100) -> List[UserInDB]:
         users = await self.repository.get_all(skip, limit)
-        return [UserInDB.model_validate(user) for user in users]
+        return [UserInDB.model_validate(user.__dict__) for user in users]
     
     async def create_user(self, user_data: UserCreate) -> User:
         hashed_password = get_password_hash(user_data.password)
