@@ -21,8 +21,18 @@ class DatabaseConfig:
         )
 
 @dataclass
+class AuthConfig:
+    yandex_redirect_url: str
+    yandex_client_id: str
+    yandex_client_secret: str
+    jwt_secret: str
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 30
+
+@dataclass
 class Config:
     db: DatabaseConfig
+    auth: AuthConfig
 
 def load_config(env_path: Optional[str] = None) -> Config:
     env = Env()
@@ -35,6 +45,14 @@ def load_config(env_path: Optional[str] = None) -> Config:
             user=env.str("POSTGRES_USER"),
             password=env.str("POSTGRES_PASSWORD"),
             name=env.str("POSTGRES_DB"),
+        ),
+        auth=AuthConfig(
+            yandex_redirect_url=env.str("YANDEX_REDIRECT_URI"),
+            yandex_client_id=env.str("YANDEX_CLIENT_ID"),
+            yandex_client_secret=env.str("YANDEX_CLIENT_SECRET"),
+            jwt_secret=env.str("JWT_SECRET"),
+            jwt_algorithm=env.str("JWT_ALGORITHM", "HS256"),
+            jwt_expire_minutes=env.int("JWT_EXPIRE_MINUTES", 30),
         )
     )
 

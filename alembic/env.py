@@ -4,7 +4,7 @@ from alembic import context
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
-from src.core.config import settings
+from base.config import settings
 from src.base.models.base import Base
 
 from src.users.model import User  

@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.users.schema import UserCreate, UserUpdate, UserInDB
 from src.users.service import UserService
-from src.core.database import get_db
+from src.base.database import get_db
 
 UserRouter = APIRouter(tags=["Users"])
 
