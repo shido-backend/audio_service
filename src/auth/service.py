@@ -3,11 +3,12 @@ from src.core.config.config import settings
 from src.auth.schema import Token
 from src.users.service import UserService
 from src.users.schema import UserCreate, UserInDB, UserYandexCreate
-from src.shared.utils.auth_utils import create_access_token
+from src.shared.utils.auth_utils import create_access_token, create_refresh_token
 from src.shared.utils.password_utils import verify_password
 from datetime import timedelta
 from fastapi import HTTPException, status
 from src.shared.clients.yandex import YandexAuthClient
+from jose import jwt, JWTError
 
 
 class AuthService:
@@ -38,16 +39,16 @@ class AuthService:
     async def authenticate_user(self, email: str, password: str) -> Token:
         user = await self.user_service.get_user_by_email_with_password(email)
         
-        if not user or not user.hashed_password:
+        if not user or user.hashed_password is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect email or password"
+                detail="Password authentication not available for this user"
             )
         
         if not verify_password(password, user.hashed_password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect email or password"
+                detail="Incorrect password"
             )
         
         return self._issue_jwt_token(user)
@@ -63,11 +64,8 @@ class AuthService:
 
     def _issue_jwt_token(self, user) -> Token:
         return Token(
-            access_token=create_access_token(
-                data={"sub": user.email},
-                expires_delta=timedelta(minutes=settings.auth.jwt_expire_minutes),
-            ),
-            token_type="bearer"
+            access_token=create_access_token(data={"sub": user.email}),
+            refresh_token=create_refresh_token(data={"sub": user.email})
         )
 
     async def _sync_user_with_database(self, user_info: dict):
@@ -82,3 +80,31 @@ class AuthService:
             return existing_user
 
         return await self.user_service.create_user(user_data)
+
+    async def refresh_token(self, refresh_token: str) -> Token:
+        credentials_exception = HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+        
+        try:
+            payload = jwt.decode(
+                refresh_token,
+                settings.auth.jwt_secret,
+                algorithms=[settings.auth.jwt_algorithm]
+            )
+            if payload.get("type") != "refresh":
+                raise credentials_exception
+                
+            email: str = payload.get("sub")
+            if email is None:
+                raise credentials_exception
+        except JWTError:
+            raise credentials_exception
+        
+        user = await self.user_service.get_user_by_email(email)
+        if user is None:
+            raise credentials_exception
+            
+        return self._issue_jwt_token(user)

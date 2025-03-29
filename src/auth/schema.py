@@ -5,7 +5,8 @@ from uuid import UUID
 
 class Token(BaseModel):
     access_token: str
-    token_type: str
+    refresh_token: str
+    token_type: str = "bearer"
 
 class TokenData(BaseModel):
     email: Optional[EmailStr] = None
@@ -33,6 +34,9 @@ class UserResponse(UserBase):
     is_superuser: bool
     created_at: datetime | None = None
     updated_at: datetime | None = None
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str = Field(..., description="Valid refresh token")
 
     class Config:
         from_attributes = True

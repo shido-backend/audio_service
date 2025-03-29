@@ -30,20 +30,31 @@ class UserService:
         return [UserInDB.model_validate(user.__dict__) for user in users]
     
     async def create_user(self, user_data: Union[UserCreate, UserYandexCreate]) -> UserInDB:
-        user_kwargs = {
-            'email': user_data.email,
-            'name': user_data.name,
-            'hashed_password': None
-        }
-        
-        if isinstance(user_data, UserCreate) and user_data.password:
-            user_kwargs['hashed_password'] = get_password_hash(user_data.password)
-        
-        if isinstance(user_data, UserYandexCreate):
-            user_kwargs['yandex_id'] = user_data.yandex_id
-        
+        if hasattr(user_data, 'password'):  
+            if not user_data.password:
+                raise ValueError("Password is required for regular registration")
+            
+            user_kwargs = {
+                'email': user_data.email,
+                'name': user_data.name,
+                'hashed_password': get_password_hash(user_data.password),
+                'yandex_id': None
+            }
+        elif hasattr(user_data, 'yandex_id'):
+            user_kwargs = {
+                'email': user_data.email,
+                'name': user_data.name,
+                'hashed_password': None,
+                'yandex_id': user_data.yandex_id
+            }
+        else:
+            raise ValueError("Invalid user data provided")
+
         db_user = User(**user_kwargs)
         created_user = await self.repository.create(db_user)
+        if hasattr(user_data, 'password') and created_user.hashed_password is None:
+            raise ValueError("Failed to set password hash during user creation")
+        
         return UserInDB.model_validate(created_user.__dict__)
 
     async def get_by_yandex_id(self, yandex_id: str) -> Optional[UserInDB]:

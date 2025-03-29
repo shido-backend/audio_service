@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.shared.utils.get_current_user import get_current_user
 from src.core.database import get_db
 from src.auth.service import AuthService
-from src.auth.schema import (Token, UserCreate, UserLogin, 
+from src.auth.schema import (RefreshTokenRequest, Token, UserCreate, UserLogin, 
                             YandexAuthResponse, UserResponse)
 from src.users.model import User
 
@@ -41,6 +41,7 @@ async def handle_yandex_callback(
     token = await AuthService(db).process_yandex_callback(code)
     return JSONResponse({
         "access_token": token.access_token,
+        "refresh_token": token.refresh_token,
         "token_type": token.token_type
     })
 
@@ -65,3 +66,15 @@ async def login_user(
 @AuthRouter.get("/me", response_model=UserResponse)
 async def get_current_user_info(user: User = Depends(get_current_user)):
     return UserResponse.model_validate(user, from_attributes=True)
+
+@AuthRouter.post(
+    "/refresh-token",
+    response_model=Token,
+    summary="Refresh tokens",
+    description="Get new access/refresh token pair using valid refresh token"
+)
+async def refresh_token(
+    token_data: RefreshTokenRequest = Body(...),
+    db: AsyncSession = Depends(get_db)
+):
+    return await AuthService(db).refresh_token(token_data.refresh_token)

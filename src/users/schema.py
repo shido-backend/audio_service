@@ -8,7 +8,7 @@ class UserBase(BaseModel):
     name: Optional[str] = None
 
 class UserCreate(UserBase):
-    password: Optional[str] = Field(None, description="Не требуется для OAuth")
+    password: str = Field(..., min_length=8)
 
 class UserYandexCreate(UserBase):
     yandex_id: str

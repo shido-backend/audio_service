@@ -8,14 +8,6 @@ from src.core.database import get_db
 
 UserRouter = APIRouter(tags=["Users"])
 
-@UserRouter.post("/", response_model=UserInDB)
-async def create_user(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
-    service = UserService(db)
-    existing_user = await service.get_user_by_email(user_data.email)
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    return await service.create_user(user_data)
-
 @UserRouter.get("/{user_id}", response_model=UserInDB)
 async def read_user(user_id: UUID, db: AsyncSession = Depends(get_db)):
     service = UserService(db)
