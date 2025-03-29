@@ -50,3 +50,16 @@ async def delete_audio(
 ):
     service = AudioService(db)
     await service.delete_user_audio(audio_id, current_user.id, current_user.is_superuser)
+
+@AudioRouter.get("/download/{audio_id}")
+async def download_audio(
+    audio_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    service = AudioService(db)
+    return await service.download_audio_file(
+        audio_id=audio_id,
+        user_id=current_user.id if current_user else None,
+        is_superuser=current_user.is_superuser if current_user else False
+    )

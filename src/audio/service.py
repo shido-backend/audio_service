@@ -2,10 +2,11 @@ import os
 import uuid
 from typing import List, Optional
 from uuid import UUID
+from fastapi.responses import FileResponse
 from mutagen.mp3 import MP3
-
-from fastapi import UploadFile, HTTPException, status
+from fastapi import Path, UploadFile, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from pathlib import Path as PathLib 
 
 from src.core.storage.service import StorageService
 from src.core.config.config import settings
@@ -98,3 +99,53 @@ class AudioService:
             pass
         
         await self.repository.delete(audio_id)
+
+    async def get_audio_for_download(self, audio_id: UUID, user_id: UUID = None, is_superuser: bool = False) -> Audio:
+        audio = await self.get_audio(audio_id)
+        
+        if not audio:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Audio not found"
+            )
+
+        if not audio.is_public and (not user_id or audio.user_id != user_id) and not is_superuser:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to access this audio"
+            )
+        
+        return audio
+    
+    async def download_audio_file(
+        self,
+        audio_id: UUID,
+        user_id: UUID = None,
+        is_superuser: bool = False
+    ) -> FileResponse:
+        audio = await self.get_audio_for_download(audio_id, user_id, is_superuser)
+        
+        file_path = PathLib(audio.file_path)  
+        if not file_path.exists():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Audio file not found on server"
+            )
+
+        filename = f"{audio.title}.{audio.format}" if audio.title else f"audio_{audio_id}.{audio.format}"
+        
+        return FileResponse(
+            path=str(file_path),
+            media_type=self._get_mime_type(audio.format),
+            filename=filename
+        )
+    
+    def _get_mime_type(self, file_ext: str) -> str:
+        mime_types = {
+            'mp3': 'audio/mpeg',
+            'wav': 'audio/wav',
+            'ogg': 'audio/ogg',
+            'flac': 'audio/flac',
+            'aac': 'audio/aac',
+        }
+        return mime_types.get(file_ext.lower(), 'application/octet-stream')
