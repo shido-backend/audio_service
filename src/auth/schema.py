@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 
 class Token(BaseModel):
     access_token: str
@@ -13,8 +14,10 @@ class UserBase(BaseModel):
     email: EmailStr
     name: Optional[str] = None
 
-class UserCreate(UserBase):
-    password: str = Field(..., min_length=8)
+class UserCreate(BaseModel):
+    email: EmailStr
+    name: str | None = None
+    password: str
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -25,11 +28,11 @@ class YandexAuthResponse(BaseModel):
     state: Optional[str] = None
 
 class UserResponse(UserBase):
-    id: int
+    id: UUID
     is_active: bool
     is_superuser: bool
-    created_at: datetime
-    updated_at: datetime
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
     class Config:
         from_attributes = True

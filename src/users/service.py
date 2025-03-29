@@ -17,7 +17,9 @@ class UserService:
     
     async def get_user_by_email(self, email: str) -> Optional[UserInDB]:
         user = await self.repository.get_by_field("email", email)
-        return UserInDB.model_validate(user.__dict__) if user else None
+        if not user:
+            return None
+        return UserInDB.model_validate(user, from_attributes=True)
 
     async def get_user_by_email_with_password(self, email: str) -> Optional[UserInDBwithPassword]:
         user = await self.repository.get_by_field("email", email)

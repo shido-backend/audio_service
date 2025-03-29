@@ -64,4 +64,4 @@ async def login_user(
 
 @AuthRouter.get("/me", response_model=UserResponse)
 async def get_current_user_info(user: User = Depends(get_current_user)):
-    return user
+    return UserResponse.model_validate(user, from_attributes=True)
