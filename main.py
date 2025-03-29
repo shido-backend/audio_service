@@ -14,8 +14,9 @@ app = FastAPI(
     lifespan=lifespan,
     title="Audio Service",
     version="1.0.0",
-    docs_url="/api/docs",
-    redoc_url=None
+    docs_url=None,
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json"  
 )
 
 app.add_middleware(
