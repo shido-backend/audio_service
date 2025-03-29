@@ -10,10 +10,18 @@ services:
       - ./audio_uploads:/app/audio_uploads
       - .:/app
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/audio_service
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=audio_service
+      - YANDEX_REDIRECT_URI=your_yandex_redirect_uri
       - YANDEX_CLIENT_ID=your_yandex_client_id
       - YANDEX_CLIENT_SECRET=your_yandex_client_secret
-      - SECRET_KEY=your_secret_key
+      - JWT_SECRET=your_jwt_secret
+      - JWT_ALGORITHM=HS256
+      - JWT_EXPIRE_MINUTES=30
+      - AUDIO_UPLOAD_DIR=uploads/audio
     depends_on:
       - db
     restart: unless-stopped
