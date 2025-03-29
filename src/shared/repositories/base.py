@@ -22,6 +22,11 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         result = await self.session.execute(select(self.model).where(field == value))
         return result.scalars().first()
 
+    async def get_many_by_field(self, field_name: str, value: Any) -> List[ModelType]:
+        field = getattr(self.model, field_name)
+        result = await self.session.execute(select(self.model).where(field == value))
+        return result.scalars().all()
+
     async def get_all(self, skip: int = 0, limit: int = 100) -> List[ModelType]:
         result = await self.session.execute(select(self.model).offset(skip).limit(limit))
         return result.scalars().all()

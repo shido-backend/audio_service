@@ -8,10 +8,11 @@ from sqlalchemy.pool import NullPool
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-from src.base.config import settings
-from src.base.models.base import Base
+from src.core.config.config import settings
+from src.shared.models.base import Base
 
-from src.users.model import User  
+from src.users.model import User
+from src.audio.model import Audio
 
 config = context.config
 fileConfig(config.config_file_name)

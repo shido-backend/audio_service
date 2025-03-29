@@ -1,6 +1,11 @@
 from dataclasses import dataclass
 from environs import Env
 from typing import Optional
+from pathlib import Path
+
+@dataclass
+class StorageConfig:
+    audio_upload_dir: str
 
 @dataclass
 class DatabaseConfig:
@@ -33,6 +38,7 @@ class AuthConfig:
 class Config:
     db: DatabaseConfig
     auth: AuthConfig
+    storage: StorageConfig
 
 def load_config(env_path: Optional[str] = None) -> Config:
     env = Env()
@@ -53,6 +59,9 @@ def load_config(env_path: Optional[str] = None) -> Config:
             jwt_secret=env.str("JWT_SECRET"),
             jwt_algorithm=env.str("JWT_ALGORITHM", "HS256"),
             jwt_expire_minutes=env.int("JWT_EXPIRE_MINUTES", 30),
+        ),
+        storage=StorageConfig(
+            audio_upload_dir=env.str("AUDIO_UPLOAD_DIR", "uploads/audio")
         )
     )
 
