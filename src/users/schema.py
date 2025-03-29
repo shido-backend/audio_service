@@ -14,6 +14,8 @@ class UserYandexCreate(UserBase):
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None
+    is_superuser: Optional[bool] = False
+    email: Optional[str] = None
 
 class UserInDB(UserBase):
     id: uuid.UUID  

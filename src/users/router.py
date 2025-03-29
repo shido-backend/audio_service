@@ -1,4 +1,5 @@
 from typing import List
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.users.schema import UserCreate, UserUpdate, UserInDB
@@ -16,7 +17,7 @@ async def create_user(user_data: UserCreate, db: AsyncSession = Depends(get_db))
     return await service.create_user(user_data)
 
 @UserRouter.get("/{user_id}", response_model=UserInDB)
-async def read_user(user_id: int, db: AsyncSession = Depends(get_db)):
+async def read_user(user_id: UUID, db: AsyncSession = Depends(get_db)):
     service = UserService(db)
     user = await service.get_user(user_id)
     if not user:
@@ -33,7 +34,7 @@ async def read_users(
     return await service.get_all_users(skip, limit)
 
 @UserRouter.put("/{user_id}", response_model=UserInDB)
-async def update_user(user_id: int, user_data: UserUpdate, db: AsyncSession = Depends(get_db)):
+async def update_user(user_id: UUID, user_data: UserUpdate, db: AsyncSession = Depends(get_db)):
     service = UserService(db)
     user = await service.get_user(user_id)
     if not user:
@@ -41,7 +42,7 @@ async def update_user(user_id: int, user_data: UserUpdate, db: AsyncSession = De
     return await service.update_user(user_id, user_data)
 
 @UserRouter.delete("/{user_id}")
-async def delete_user(user_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_user(user_id: UUID, db: AsyncSession = Depends(get_db)):
     service = UserService(db)
     user = await service.get_user(user_id)
     if not user:
