@@ -1,13 +1,14 @@
-import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.config.config import settings
 from src.auth.schema import Token
 from src.users.service import UserService
 from src.users.schema import UserCreate, UserInDB, UserYandexCreate
 from src.shared.utils.auth_utils import create_access_token
-from src.shared.utils.password_utils import verify_password, get_password_hash
+from src.shared.utils.password_utils import verify_password
 from datetime import timedelta
 from fastapi import HTTPException, status
+from src.shared.clients.yandex import YandexAuthClient
+
 
 class AuthService:
     def __init__(self, session: AsyncSession = None):
@@ -15,16 +16,11 @@ class AuthService:
         self.user_service = UserService(session) if session else None
 
     def generate_yandex_auth_url(self) -> str:
-        return (
-            f"https://oauth.yandex.ru/authorize?"
-            f"response_type=code&"
-            f"client_id={settings.auth.yandex_client_id}&"
-            f"redirect_uri={settings.auth.yandex_redirect_url}"
-        )
+        return YandexAuthClient.get_auth_url()
 
     async def process_yandex_callback(self, code: str) -> Token:
-        yandex_token = await self._exchange_code_for_token(code)
-        user_info = await self._fetch_yandex_user_info(yandex_token)
+        yandex_token = await YandexAuthClient.get_token(code)
+        user_info = await YandexAuthClient.get_user_info(yandex_token)
         user = await self._sync_user_with_database(user_info)
         return self._issue_jwt_token(user)
 
@@ -73,42 +69,6 @@ class AuthService:
             ),
             token_type="bearer"
         )
-
-    async def _exchange_code_for_token(self, code: str) -> str:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                "https://oauth.yandex.ru/token",
-                data={
-                    "grant_type": "authorization_code",
-                    "code": code,
-                    "client_id": settings.auth.yandex_client_id,
-                    "client_secret": settings.auth.yandex_client_secret,
-                },
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
-            )
-            
-            if response.status_code != 200:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Failed to exchange authorization code"
-                )
-            
-            return response.json().get("access_token")
-
-    async def _fetch_yandex_user_info(self, token: str) -> dict:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                "https://login.yandex.ru/info",
-                headers={"Authorization": f"OAuth {token}"},
-            )
-            
-            if response.status_code != 200:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Failed to fetch user profile"
-                )
-            
-            return response.json()
 
     async def _sync_user_with_database(self, user_info: dict):
         user_data = UserYandexCreate(
