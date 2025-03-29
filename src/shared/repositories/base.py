@@ -1,4 +1,4 @@
-from typing import TypeVar, Generic, Optional, List, Any
+from typing import TypeVar, Generic, Optional, List, Any, Union
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.declarative import DeclarativeMeta
@@ -26,13 +26,17 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         result = await self.session.execute(select(self.model).offset(skip).limit(limit))
         return result.scalars().all()
 
-    async def create(self, obj_in: CreateSchemaType) -> ModelType:
-        db_obj = self.model(**obj_in.model_dump())
+    async def create(self, obj_in: Union[CreateSchemaType, ModelType]) -> ModelType:
+        if hasattr(obj_in, 'model_dump'): 
+            db_obj = self.model(**obj_in.model_dump())
+        else: 
+            db_obj = obj_in
+            
         self.session.add(db_obj)
         await self.session.commit()
         await self.session.refresh(db_obj)
         return db_obj
-
+    
     async def update(self, id: Any, obj_in: UpdateSchemaType) -> Optional[ModelType]:
         await self.session.execute(
             update(self.model)

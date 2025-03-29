@@ -1,8 +1,9 @@
-from typing import List, Optional
+from typing import List, Optional, Union
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.base.utils.password import get_password_hash
-from src.users.schema import UserCreate, UserInDBwithPassword, UserUpdate, UserInDB
-from src.base.repositories.base import BaseRepository
+from src.shared.utils.password_utils import get_password_hash
+from src.users.schema import UserCreate, UserInDBwithPassword, UserUpdate, UserInDB, UserYandexCreate
+from src.shared.repositories.base import BaseRepository
 from src.users.model import User
 
 class UserService:
@@ -25,17 +26,31 @@ class UserService:
         users = await self.repository.get_all(skip, limit)
         return [UserInDB.model_validate(user.__dict__) for user in users]
     
-    async def create_user(self, user_data: UserCreate) -> User:
-        hashed_password = get_password_hash(user_data.password)
-        db_user = User(
-            email=user_data.email,
-            name=user_data.name,
-            hashed_password=hashed_password
-        )
-        self.repository.session.add(db_user)
-        await self.repository.session.commit()
-        await self.repository.session.refresh(db_user)
-        return db_user
+    async def create_user(self, user_data: Union[UserCreate, UserYandexCreate]) -> User:
+        # Prepare the data for User creation
+        user_kwargs = {
+            'email': user_data.email,
+            'name': user_data.name,
+            'hashed_password': None
+        }
+        
+        # Handle password if it exists
+        if isinstance(user_data, UserCreate) and user_data.password:
+            user_kwargs['hashed_password'] = get_password_hash(user_data.password)
+        
+        # Handle yandex_id if it exists
+        if isinstance(user_data, UserYandexCreate):
+            user_kwargs['yandex_id'] = user_data.yandex_id
+        
+        # Create the User instance
+        db_user = User(**user_kwargs)
+        
+        # Save to database using repository
+        return await self.repository.create(db_user)
+
+    async def get_by_yandex_id(self, yandex_id: str) -> Optional[User]:
+        user = await self.repository.get_by_field("yandex_id", yandex_id)
+        return user
     
     async def update_user(self, user_id: int, user_data: UserUpdate) -> Optional[UserInDB]:
         user = await self.repository.update(user_id, user_data)

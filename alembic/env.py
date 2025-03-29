@@ -1,10 +1,14 @@
 import asyncio
 from logging.config import fileConfig
+import os
+import sys
 from alembic import context
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
-from base.config import settings
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from src.base.config import settings
 from src.base.models.base import Base
 
 from src.users.model import User  
@@ -12,7 +16,6 @@ from src.users.model import User
 config = context.config
 fileConfig(config.config_file_name)
 
-# Указываем метаданные для autogenerate
 target_metadata = Base.metadata
 
 def run_migrations_offline():

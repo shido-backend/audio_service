@@ -4,8 +4,8 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from jose import jwt, JWTError
 from passlib.context import CryptContext
-from src.base.database import get_db
-from src.base.config import settings
+from src.core.database import get_db
+from src.core.config.config import settings
 from src.auth.schema import TokenData
 from src.users.service import UserService
 from src.users.model import User

@@ -1,11 +1,11 @@
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.base.config import settings
+from src.core.config.config import settings
 from src.auth.schema import Token
 from src.users.service import UserService
-from src.users.schema import UserCreate, UserInDB
-from src.base.utils.auth_utils import create_access_token
-from src.base.utils.password import verify_password, get_password_hash
+from src.users.schema import UserCreate, UserInDB, UserYandexCreate
+from src.shared.utils.auth_utils import create_access_token
+from src.shared.utils.password_utils import verify_password, get_password_hash
 from datetime import timedelta
 from fastapi import HTTPException, status
 
@@ -111,20 +111,14 @@ class AuthService:
             return response.json()
 
     async def _sync_user_with_database(self, user_info: dict):
-        email = user_info.get("default_email")
-        if not email:
-            raise HTTPException(
-                status_code=400,
-                detail="User email not available"
-            )
-        
-        user = await self.user_service.get_user_by_email(email)
-        if not user:
-            user_data = UserCreate(
-                email=email,
-                name=user_info.get("real_name") or user_info.get("display_name"),
-                yandex_id=user_info.get("id")
-            )
-            user = await self.user_service.create_user(user_data)
-        
-        return user
+        user_data = UserYandexCreate(
+            email=user_info['default_email'],
+            name=user_info.get('real_name', user_info['login']),
+            yandex_id=str(user_info['id'])
+        )
+
+        existing_user = await self.user_service.get_by_yandex_id(user_data.yandex_id)
+        if existing_user:
+            return existing_user
+
+        return await self.user_service.create_user(user_data)

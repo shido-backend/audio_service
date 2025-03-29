@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.base.utils.get_current_user import get_current_user
-from src.base.database import get_db
+from src.shared.utils.get_current_user import get_current_user
+from src.core.database import get_db
 from src.auth.service import AuthService
 from src.auth.schema import (Token, UserCreate, UserLogin, 
                             YandexAuthResponse, UserResponse)
@@ -37,20 +37,13 @@ async def handle_yandex_callback(
             status_code=400,
             detail="Authorization code not provided"
         )
-    
-    try:
-        token = await AuthService(db).process_yandex_callback(code)
-        return JSONResponse({
-            "access_token": token.access_token,
-            "token_type": token.token_type
-        })
-    except HTTPException as e:
-        raise e
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail="Internal server error during authentication"
-        )
+
+    token = await AuthService(db).process_yandex_callback(code)
+    return JSONResponse({
+        "access_token": token.access_token,
+        "token_type": token.token_type
+    })
+
 
 @AuthRouter.post("/register", response_model=Token)
 async def register_user(
